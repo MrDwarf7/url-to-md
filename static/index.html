@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>url2md — URL to Markdown for LLMs</title>
+    <meta name="description" content="Convert any URL to clean, token-efficient markdown. Strip ads, nav, and boilerplate. Built for Claude, Cursor, and every AI coding tool.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0a0a0a;
+            --surface: #141414;
+            --border: #222;
+            --text: #e0e0e0;
+            --muted: #888;
+            --accent: #4f9cf7;
+            --accent-dim: #2a5a8f;
+            --green: #3ddc84;
+            --red: #ff5f57;
+        }
+        body {
+            font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        .container { max-width: 720px; margin: 0 auto; padding: 40px 20px; }
+        
+        header { text-align: center; margin-bottom: 48px; }
+        header h1 {
+            font-size: 2.4em;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
+        header h1 span { color: var(--accent); }
+        header p { color: var(--muted); font-size: 0.95em; }
+        
+        .input-area {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .input-row {
+            display: flex;
+            gap: 12px;
+        }
+        #url-input {
+            flex: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px 16px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9em;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        #url-input:focus { border-color: var(--accent); }
+        #url-input::placeholder { color: var(--muted); }
+        
+        #convert-btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 24px;
+            font-family: inherit;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+        #convert-btn:hover { opacity: 0.85; }
+        #convert-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        .output-area {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            display: none;
+        }
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(79, 156, 247, 0.05);
+        }
+        .output-stats { display: flex; gap: 16px; font-size: 0.8em; color: var(--muted); }
+        .output-stats span { display: flex; align-items: center; gap: 4px; }
+        .output-stats .count { color: var(--accent); font-weight: 600; }
+        
+        #copy-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            border-radius: 4px;
+            padding: 4px 12px;
+            font-family: inherit;
+            font-size: 0.75em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        #copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+        
+        #output-content {
+            padding: 16px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 0.82em;
+            line-height: 1.7;
+            color: var(--muted);
+        }
+        #output-content::-webkit-scrollbar { width: 6px; }
+        #output-content::-webkit-scrollbar-track { background: transparent; }
+        #output-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        
+        .error-msg {
+            background: rgba(255, 95, 87, 0.1);
+            border: 1px solid rgba(255, 95, 87, 0.3);
+            border-radius: 6px;
+            padding: 12px 16px;
+            color: var(--red);
+            font-size: 0.85em;
+            margin-bottom: 24px;
+            display: none;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+        .feature {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .feature h3 { font-size: 0.9em; margin-bottom: 6px; }
+        .feature p { font-size: 0.8em; color: var(--muted); line-height: 1.5; }
+        
+        .api-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 48px;
+        }
+        .api-section h2 { font-size: 1.1em; margin-bottom: 12px; }
+        .api-section pre {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+            font-size: 0.78em;
+            overflow-x: auto;
+            margin-bottom: 12px;
+            color: var(--green);
+        }
+        .api-section p { font-size: 0.82em; color: var(--muted); line-height: 1.6; }
+        
+        footer {
+            text-align: center;
+            padding: 24px;
+            color: var(--muted);
+            font-size: 0.75em;
+            border-top: 1px solid var(--border);
+        }
+        footer a { color: var(--accent); text-decoration: none; }
+        
+        /* Ad placeholder */
+        .ad-slot {
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.7em;
+            margin: 24px 0;
+        }
+        
+        @media (max-width: 600px) {
+            .features { grid-template-columns: 1fr; }
+            .input-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>url<span>2</span>md</h1>
+            <p>Any URL → clean markdown. Strips the junk your LLM doesn't need.</p>
+        </header>
+        
+        <div class="input-area">
+            <div class="input-row">
+                <input type="url" id="url-input" placeholder="https://example.com/article" autofocus>
+                <button id="convert-btn" onclick="convert()">Convert</button>
+            </div>
+        </div>
+        
+        <div class="error-msg" id="error-msg"></div>
+        
+        <div class="output-area" id="output-area">
+            <div class="output-header">
+                <div class="output-stats">
+                    <span>chars: <span class="count" id="stat-chars">0</span></span>
+                    <span>tokens: <span class="count" id="stat-tokens">0</span></span>
+                    <span>lines: <span class="count" id="stat-lines">0</span></span>
+                </div>
+                <button id="copy-btn" onclick="copyOutput()">Copy markdown</button>
+            </div>
+            <pre id="output-content"></pre>
+        </div>
+        
+        <!-- Ad slot 1: After results -->
+        <div class="ad-slot" id="ad-top">
+            <!-- AdSense placeholder -->
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <h3>Clean output</h3>
+                <p>Readability extraction grabs just the article body. No nav bars, no cookie banners, no "related posts" garbage.</p>
+            </div>
+            <div class="feature">
+                <h3>Token counts</h3>
+                <p>See exactly how many tokens you're burning before you paste into Claude or Cursor. No more context window surprises.</p>
+            </div>
+            <div class="feature">
+                <h3>Free API</h3>
+                <p>30 requests/hour, no signup. Curl it, script it, wire it into your CI. It's a public utility, not a walled garden.</p>
+            </div>
+            <div class="feature">
+                <h3>500K chars</h3>
+                <p>Handles long docs, blog posts, even full changelogs. Most pages land under 20K chars — you've got room.</p>
+            </div>
+        </div>
+        
+        <div class="api-section">
+            <h2>API</h2>
+            <pre>curl "https://url2md.com/api/convert?url=https://example.com"</pre>
+            <pre>curl -X POST https://url2md.com/api/convert \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com", "max_chars": 50000}'</pre>
+            <p>
+                Response: <code>{url, title, markdown, char_count, token_estimate, line_count}</code><br>
+                Rate limit: 30 requests/hour per IP. No API key needed.
+            </p>
+        </div>
+        
+        <!-- Ad slot 2: Before footer -->
+        <div class="ad-slot" id="ad-bottom">
+            <!-- AdSense placeholder -->
+        </div>
+        
+        <footer>
+            Built by an agent who got tired of pasting messy HTML into LLMs.<br>
+            <a href="https://github.com/MrDwarf7/url-to-md">GitHub</a> · MIT License · 
+            <a href="https://github.com/sponsors/MrDwarf7">Sponsor</a>
+        </footer>
+    </div>
+    
+    <script>
+        const input = document.getElementById('url-input');
+        const btn = document.getElementById('convert-btn');
+        const outputArea = document.getElementById('output-area');
+        const outputContent = document.getElementById('output-content');
+        const errorMsg = document.getElementById('error-msg');
+        
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') convert();
+        });
+        
+        async function convert() {
+            const url = input.value.trim();
+            if (!url) return;
+            
+            btn.disabled = true;
+            btn.textContent = 'Converting...';
+            errorMsg.style.display = 'none';
+            outputArea.style.display = 'none';
+            
+            try {
+                const resp = await fetch('/api/convert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                
+                const data = await resp.json();
+                
+                if (!resp.ok) {
+                    throw new Error(data.detail || 'Conversion failed');
+                }
+                
+                document.getElementById('stat-chars').textContent = data.char_count.toLocaleString();
+                document.getElementById('stat-tokens').textContent = data.token_estimate.toLocaleString();
+                document.getElementById('stat-lines').textContent = data.line_count.toLocaleString();
+                outputContent.textContent = data.markdown;
+                outputArea.style.display = 'block';
+                
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Convert';
+            }
+        }
+        
+        async function copyOutput() {
+            const text = outputContent.textContent;
+            await navigator.clipboard.writeText(text);
+            const btn = document.getElementById('copy-btn');
+            btn.textContent = 'Copied';
+            setTimeout(() => btn.textContent = 'Copy markdown', 2000);
+        }
+    </script>
+</body>
+</html>
