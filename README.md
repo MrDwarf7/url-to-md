@@ -2,13 +2,15 @@
 
 Any URL → clean markdown for LLMs.
 
-Strips ads, navigation, cookie banners, and boilerplate. Returns the actual content — formatted as clean markdown with token count estimates.
+Strips ads, navigation, cookie banners, and boilerplate. Returns the actual content — clean markdown with token count estimates.
 
 Built for developers who paste web content into Claude, Cursor, Copilot, or any AI coding tool.
 
 ## Use It
 
 **Web:** [url2md.com](https://url2md.com) — paste a URL, get markdown. No signup.
+
+**Landing page:** [mrdwarf7.github.io/url-to-md](https://mrdwarf7.github.io/url-to-md/)
 
 **API:**
 ```bash
@@ -42,6 +44,13 @@ Rate limit: 30 requests/hour per IP. No API key needed.
 pip install -r requirements.txt
 python main.py
 # Open http://localhost:8000
+```
+
+## Docker
+
+```bash
+docker build -t url2md .
+docker run -p 8000:8000 url2md
 ```
 
 ## What It Does
