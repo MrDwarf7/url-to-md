@@ -187,7 +187,7 @@
                 <span class="dot g"></span>
             </div>
             <div class="terminal-body">
-                <span class="prompt">$ </span><span class="cmd">curl "https://url2md.com/api/convert?url=https://example.com/article"</span>
+                <span class="prompt">$ </span><span class="cmd">curl "http://localhost:8000/api/convert?url=https://example.com/article"</span>
                 <div class="output">{
   "title": "How We Reduced Latency by 40%",
   "markdown": "# How We Reduced Latency by 40%\n\nLast Tuesday...",
@@ -261,8 +261,11 @@
         
         <div class="api-section">
             <h2>API</h2>
-            <pre>curl "https://url2md.com/api/convert?url=https://example.com/article"</pre>
-            <pre>curl -X POST https://url2md.com/api/convert \
+            <pre># Self-hosted (Docker)
+curl "http://localhost:8000/api/convert?url=https://example.com/article"
+
+# Hosted API — coming soon at api.url2md.com</pre>
+            <pre>curl -X POST http://localhost:8000/api/convert \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com/article"}'</pre>
             <pre class="response-example">Response:
